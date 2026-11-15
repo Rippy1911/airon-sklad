@@ -1,0 +1,24 @@
+airon skład: an ingredient-list checker for food labels sold in Poland
+Copyright (C) 2026 NextSolutions and contributors
+https://github.com/Rippy1911/airon-sklad
+
+CODE is licensed under the GNU Affero General Public License, version 3 (see LICENSE). If you run a
+modified version for users over a network, section 13 requires you to offer them its source; the
+site's footer links to the exact commit it runs.
+
+THE SCORING RULES (rules/) are licensed under CC BY-SA 4.0.
+
+INCLUDES ns-ingredients (vendor/ns-ingredients): code AGPL-3.0 with additional terms, knowledge base
+CC BY-SA 4.0, kb/generated CC0 1.0. Its section 7(b) term applies to this work: the notice
+"Powered by ns-ingredients (NextSolutions)", linking to
+https://github.com/NextSolutionsStudio/ns-ingredients, is kept on every page's footer, on the
+/o-danych page, and in the metadata of every API response. Keep it in any version you run.
+
+PRODUCT DATA comes from Open Food Facts (https://world.openfoodfacts.org), directly or through the
+ns-food service, under the Open Database License 1.0; product images under CC BY-SA 3.0. The site
+keeps no copy of that database beyond a short-lived cache: scores are computed on each request. In
+line with ODbL section 4.6, the method that derives them (this code, the rules and the engine) is
+public.
+
+FONTS: Bricolage Grotesque, IBM Plex Sans and IBM Plex Mono, SIL Open Font License 1.1, copied from
+@fontsource at build time (not stored in this repository).
