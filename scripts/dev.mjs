@@ -29,4 +29,5 @@ const run = (args) =>
   });
 
 await run(["d1", "migrations", "apply", "airon-sklad", "--local"]);
-await run(["dev", "--port", process.env.PORT ?? "8788", ...process.argv.slice(2)]);
+const args = process.argv.slice(2);
+await run(["dev", ...(args.includes("--port") ? [] : ["--port", process.env.PORT ?? "8788"]), ...args]);
