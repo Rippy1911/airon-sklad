@@ -1,0 +1,106 @@
+{
+  "version": "0.1",
+  "status": "robocze",
+  "licence": "CC BY-SA 4.0",
+  "summary": "Zaczynamy od 100 i odejmujemy kary za grupy składników. Każda grupa liczy się raz na produkt. Liczymy tylko to, co etykieta mówi na pewno, i tylko gdy rozpoznaliśmy skład.",
+  "coverage_min": 0.8,
+  "bands": [
+    { "min": 80, "id": "good", "label": "Dobry skład" },
+    { "min": 50, "id": "mid", "label": "Do przemyślenia" },
+    { "min": 0, "id": "low", "label": "Słaby skład" }
+  ],
+  "groups": [
+    {
+      "id": "added_sugar",
+      "label": "Cukry dodane",
+      "codes": ["health.added_sugar"],
+      "by_position": [{ "upto": 3, "weight": 18 }, { "upto": 6, "weight": 12 }, { "upto": 999, "weight": 6 }],
+      "why": "Cukry wolne w rozumieniu WHO. Im wyżej na liście stoi pierwszy z nich, tym większy jego udział, więc tym większa kara."
+    },
+    {
+      "id": "industrial_fats",
+      "label": "Tłuszcze utwardzone",
+      "codes": ["processing.hydrogenated", "health.trans_fat_source"],
+      "weight": 20,
+      "why": "Tłuszcz częściowo utwardzony może zawierać przemysłowe kwasy tłuszczowe trans."
+    },
+    {
+      "id": "southampton",
+      "label": "Barwniki z ostrzeżeniem",
+      "codes": ["health.southampton_colour"],
+      "weight": 15,
+      "why": "Barwniki, przy których prawo UE wymaga ostrzeżenia o możliwym wpływie na aktywność i uwagę dzieci."
+    },
+    {
+      "id": "iarc_2b",
+      "label": "IARC grupa 2B",
+      "codes": ["health.iarc_group_2b"],
+      "weight": 10,
+      "why": "IARC opisuje zagrożenie, nie ryzyko przy zwykłym spożyciu. Liczymy to łagodnie i zawsze mówimy, co znaczy."
+    },
+    {
+      "id": "no_safe_level",
+      "label": "Brak bezpiecznego poziomu",
+      "codes": ["health.no_safe_level_established"],
+      "weight": 10,
+      "why": "Regulator nie ustalił akceptowalnego dziennego spożycia."
+    },
+    {
+      "id": "nitrosamines",
+      "label": "Prekursory nitrozoamin",
+      "codes": ["health.nitrosamine_precursor"],
+      "weight": 10,
+      "why": "Azotyny i azotany mogą tworzyć nitrozoaminy, zwłaszcza przy smażeniu."
+    },
+    {
+      "id": "sweeteners",
+      "label": "Substancje słodzące",
+      "codes": ["processing.non_sugar_sweetener"],
+      "weight": 8,
+      "why": "WHO (2023) odradza substancje słodzące jako sposób na kontrolę masy ciała."
+    },
+    {
+      "id": "ultra_processed",
+      "label": "Wskaźniki wysokiego przetworzenia",
+      "codes": ["processing.ultra_processed_marker"],
+      "weight": 8,
+      "why": "Składniki typowe dla żywności wysoko przetworzonej (aromaty, emulgatory, izolaty)."
+    },
+    {
+      "id": "interesterified",
+      "label": "Tłuszcze estryfikowane",
+      "codes": ["processing.interesterified"],
+      "weight": 8,
+      "why": "Tłuszcz o przebudowanej strukturze; dane o wpływie na zdrowie są ograniczone."
+    },
+    {
+      "id": "revoked",
+      "label": "Wycofany przez innego regulatora",
+      "codes": ["regulatory.revoked_elsewhere"],
+      "weight": 8,
+      "why": "Dopuszczony w UE, ale ważny regulator poza UE cofnął dopuszczenie."
+    },
+    {
+      "id": "polyols",
+      "label": "Poliole",
+      "codes": ["health.laxative_polyol"],
+      "weight": 5,
+      "why": "W większej ilości działają przeczyszczająco; etykieta musi o tym ostrzegać."
+    },
+    {
+      "id": "eu_banned",
+      "label": "Niedopuszczony w UE",
+      "codes": ["regulatory.eu_banned"],
+      "weight": 25,
+      "why": "Składnik, którego prawo UE nie dopuszcza w żywności."
+    }
+  ],
+  "not_counted": [
+    { "what": "Alergeny i diety", "why": "Ważne dla części osób, nie dla wszystkich. Pokazujemy je osobno." },
+    { "what": "Pochodzenie (roślinne, zwierzęce, GMO, synteza)", "why": "To kwestia wyboru, nie jakości składu." },
+    { "what": "Rafinacja", "why": "Sama w sobie nie świadczy o gorszym składzie." },
+    { "what": "Wartości odżywcze", "why": "Pokazujemy je osobno; wynik dotyczy składu." },
+    { "what": "Dyskutowany wpływ na jelita", "why": "Dowody są sporne; pokazujemy, nie liczymy." },
+    { "what": "Rzeczy możliwe, nie pewne", "why": "Gdy etykieta nie przesądza (np. nieznany rodzaj tłuszczu), pokazujemy to jako możliwe, bez kary." }
+  ]
+}

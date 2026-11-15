@@ -1,0 +1,7 @@
+node_modules/
+dist/
+public/fonts/
+.wrangler/
+.dev.vars*
+.env*
+vendor/ns-ingredients/dist/

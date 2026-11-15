@@ -1,0 +1,3 @@
+[submodule "vendor/ns-ingredients"]
+	path = vendor/ns-ingredients
+	url = https://github.com/NextSolutionsStudio/ns-ingredients.git

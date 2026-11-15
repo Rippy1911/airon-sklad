@@ -1,0 +1,28 @@
+name: ci
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: deno fmt --check src tests scripts public/photo.js
+      - run: deno lint
+      - run: deno task check
+      - run: deno task test
+      - run: deno task build
+      - name: Worker bundle stays under the 3 MB compressed limit
+        run: test "$(gzip -c dist/worker.js | wc -c)" -lt 3000000
