@@ -14,7 +14,7 @@
   },
   // Secrets (wrangler secret put): NS_FOOD_KEY, ANTHROPIC_API_KEY.
   "d1_databases": [
-    { "binding": "DB", "database_name": "airon-sklad", "database_id": "REPLACE_WITH_D1_ID", "migrations_dir": "migrations" }
+    { "binding": "DB", "database_name": "airon-sklad", "database_id": "90351f76-c4fb-45c9-b95b-bbc4c7441fe0", "migrations_dir": "migrations" }
   ],
   "ratelimits": [
     // Photo reads: 5 per minute per client address.
