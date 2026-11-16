@@ -285,6 +285,32 @@ Deno.test("rating a confirmed transcription", async () => {
   assertStringIncludes(body, "sezam");
 });
 
+Deno.test("origins card: how each ingredient is made, once, with the knowledge base's note", async () => {
+  const fd = new URLSearchParams({
+    ingredients: "cukier, olej palmowy, olej rzepakowy, emulgator: E471, kwas cytrynowy",
+    from: "text",
+    name: "Krem",
+  });
+  const body = await (await makeHandler({ cache: null })(
+    new Request("https://sklad.test/ocen", { method: "POST", body: fd }),
+    ENV,
+    ctx(),
+  )).text();
+  const card = body.slice(body.indexOf("Skąd pochodzą składniki"));
+  assertStringIncludes(card, "Pochodna olejów roślinnych");
+  assertStringIncludes(card, 'olej palmowy, olej rzepakowy, E471 <span class="muted">(możliwe)</span>');
+  // A possible item that is not last: no stray space before the comma.
+  assertStringIncludes(card, 'cukier <span class="muted">(możliwe)</span>, olej rzepakowy');
+  assertStringIncludes(card, "Fermentacja mikrobiologiczna");
+  assertStringIncludes(card, "Aspergillus niger", "the note says how citric acid is made");
+  // Oil-derived before fermentation before plain plant origin.
+  const at = (s: string) => card.indexOf(s);
+  assert(at("Pochodna olejów roślinnych") < at("Fermentacja mikrobiologiczna"));
+  assert(at("Fermentacja mikrobiologiczna") < at("Pochodzenie roślinne"));
+  // Not repeated in "Warto wiedzieć".
+  assertEquals(body.split("Fermentacja mikrobiologiczna").length - 1, 1);
+});
+
 Deno.test("rate limit applies to every page", async () => {
   const h = makeHandler({ cache: null });
   const r = await h(
