@@ -29,11 +29,10 @@ const atBase = async (path: string) => {
 };
 const fails: string[] = [], warns: string[] = [], notes: string[] = [];
 
-// quotePath=false: git would otherwise print "kb/sources/\305\272r\303\263d\305\202a.yaml", which no filter matches.
-const changed =
-  (await git("-c", "core.quotePath=false", "diff", "--name-status", "--no-renames", `${base}...HEAD`))
-    .trim().split("\n")
-    .filter(Boolean).map((l) => l.split("\t") as [string, string]);
+// -z: status and path NUL-separated and never quoted, whatever a file name holds (non-ASCII, tabs, quotes).
+const zfields = (await git("diff", "-z", "--name-status", "--no-renames", `${base}...HEAD`)).split("\0");
+const changed: [string, string][] = [];
+for (let i = 0; i + 1 < zfields.length; i += 2) if (zfields[i]) changed.push([zfields[i], zfields[i + 1]]);
 const FORBIDDEN =
   /\b(dangerous|toxic|harmful|poison\w*|niebezpieczn\w*|toksyczn\w*|szkodliw\w*|trując\w*|gefährlich\w*|giftig\w*|schädlich\w*)\b/iu;
 const CLINICAL = /\b(safe for|unsafe for|safe in pregnancy|bezpieczn\w* dla|bezpieczn\w* w ciąży)\b/iu;

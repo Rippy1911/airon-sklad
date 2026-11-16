@@ -21,7 +21,8 @@ const git = async (...args: string[]) => {
   return r.code === 0 ? new TextDecoder().decode(r.stdout) : "";
 };
 type Source = { id: string; title?: string; year?: number; url?: string; doi?: string; pmid?: string };
-const files = (await git("-c", "core.quotePath=false", "diff", "--name-only", `${base}...HEAD`)).split("\n")
+// -z: NUL-separated paths, never quoted, whatever a file name holds.
+const files = (await git("diff", "-z", "--name-only", `${base}...HEAD`)).split("\0")
   .filter((f) => /^kb\/sources(\.ya?ml|\/[^/]+\.ya?ml)$/.test(f));
 const fresh: Source[] = [];
 for (const f of files) {
