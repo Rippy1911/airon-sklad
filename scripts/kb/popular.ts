@@ -70,31 +70,41 @@ const save = () =>
       no_polish_list: [...skipped],
     }),
   );
+// Walk the ranking from the top every run, counting products already saved, so a higher-ranked product whose fetch
+// failed last time is retried even when the file already holds `target` rows.
 let n = 0;
+const top = new Set<string>();
 for (const { code, scans } of codes) {
-  if (rows.size >= target) break;
-  if (rows.has(code) || skipped.has(code)) continue;
-  const body = await getJson(
-    `https://world.openfoodfacts.org/api/v2/product/${code}?fields=code,product_name,product_name_pl,brands,ingredients_text_pl`,
-  );
-  // A failed fetch (retries exhausted) is not "no Polish list": leave the code for the next run.
-  if (!body) continue;
-  const p = (body.product ?? {}) as Record<string, unknown>;
-  const text = String(p.ingredients_text_pl ?? "").trim();
-  if (text.length >= 3) {
-    rows.set(code, {
-      barcode: code,
-      name: String(p.product_name_pl || p.product_name || ""),
-      brands: String(p.brands ?? ""),
-      scans,
-      ingredients_text: text,
-    });
-  } else skipped.add(code);
-  if (++n % 50 === 0) {
-    await save();
-    console.error(`${n} fetched: ${rows.size} with a Polish list`);
+  if (top.size >= target) break;
+  if (skipped.has(code)) continue;
+  if (!rows.has(code)) {
+    const body = await getJson(
+      `https://world.openfoodfacts.org/api/v2/product/${code}?fields=code,product_name,product_name_pl,brands,ingredients_text_pl`,
+    );
+    // A failed fetch (retries exhausted) is not "no Polish list": leave the code for the next run.
+    if (body) {
+      const p = (body.product ?? {}) as Record<string, unknown>;
+      const text = String(p.ingredients_text_pl ?? "").trim();
+      if (text.length >= 3) {
+        rows.set(code, {
+          barcode: code,
+          name: String(p.product_name_pl || p.product_name || ""),
+          brands: String(p.brands ?? ""),
+          scans,
+          ingredients_text: text,
+        });
+      } else skipped.add(code);
+    }
+    if (++n % 50 === 0) {
+      await save();
+      console.error(`${n} fetched: ${rows.size} with a Polish list`);
+    }
+    await sleep(650);
   }
-  await sleep(650);
+  if (rows.has(code)) top.add(code);
 }
+// Once the top `target` are known, the corpus is exactly those: a lower-ranked product that took a failed
+// product's place in an earlier run drops out.
+if (top.size >= target) { for (const c of [...rows.keys()]) if (!top.has(c)) rows.delete(c); }
 await save();
 console.log(`${rows.size} products with a Polish list -> ${out}`);
