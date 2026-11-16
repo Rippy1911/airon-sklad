@@ -14,6 +14,7 @@
 // on at least one corpus. WARN lines are for the reviewer's spot-check: score changes on labels that scored
 // before, every newly confident match, and new "joined items" (two ingredients the label's punctuation ran
 // together, where one now hides the other).
+import { fromFileUrl } from "@std/path";
 import { resolve, toFileUrl } from "@std/path";
 import type { LabelRecord } from "./dump.ts";
 
@@ -62,7 +63,7 @@ async function side(name: string, dir: string) {
       `--config=${cfg}`,
       "--allow-read",
       `--allow-write=${out}`,
-      new URL("scripts/kb/dump.ts", here).pathname.replace(/^\/([A-Za-z]:)/, "$1"),
+      fromFileUrl(new URL("scripts/kb/dump.ts", here)),
       c,
       file,
     ]);
@@ -85,8 +86,20 @@ const target = (s: string) => s.replace(/^.* => /, "").replace(/ .*$/, "");
 const newMatches = new Map<string, { n: number; eg: string }>();
 let improvedSomewhere = false;
 
+/** Rows are compared by barcode, so every row needs one, once: otherwise a lost score could hide behind a gained one. */
+const byBarcode = (recs: LabelRecord[], what: string) => {
+  const m = new Map<string, LabelRecord>();
+  for (const r of recs) {
+    if (!r.barcode) throw new Error(`${what}: a row has no barcode`);
+    if (m.has(r.barcode)) {
+      throw new Error(`${what}: barcode ${r.barcode} appears twice; dedupe the corpus first`);
+    }
+    m.set(r.barcode, r);
+  }
+  return m;
+};
 for (const c of corpora) {
-  const b = new Map(B.res[c].map((r) => [r.barcode, r])), a = new Map(A.res[c].map((r) => [r.barcode, r]));
+  const b = byBarcode(B.res[c], `before ${c}`), a = byBarcode(A.res[c], `after ${c}`);
   const count = (m: Map<string, LabelRecord>) => {
     const recs = [...m.values()];
     const reasons: Record<string, number> = {};

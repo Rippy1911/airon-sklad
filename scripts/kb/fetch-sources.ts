@@ -21,16 +21,17 @@ const git = async (...args: string[]) => {
   return r.code === 0 ? new TextDecoder().decode(r.stdout) : "";
 };
 type Source = { id: string; title?: string; year?: number; url?: string; doi?: string; pmid?: string };
-const files = (await git("diff", "--name-only", `${base}...HEAD`)).split("\n")
+const files = (await git("-c", "core.quotePath=false", "diff", "--name-only", `${base}...HEAD`)).split("\n")
   .filter((f) => /^kb\/sources(\.ya?ml|\/[^/]+\.ya?ml)$/.test(f));
 const fresh: Source[] = [];
 for (const f of files) {
   const now = (parse(await Deno.readTextFile(`${dir}/${f}`)) as { sources?: Source[] }).sources ?? [];
-  const before = new Set(
+  const before = new Map(
     ((parse((await git("show", `${base}:${f}`)) || "{}") as { sources?: Source[] } | null)?.sources ?? [])
-      .map((s) => s.id),
+      .map((s) => [s.id, [s.doi ?? "", s.url ?? "", s.pmid ?? ""].join("|")]),
   );
-  fresh.push(...now.filter((s) => !before.has(s.id)));
+  // New sources, and existing ones whose citation changed.
+  fresh.push(...now.filter((s) => before.get(s.id) !== [s.doi ?? "", s.url ?? "", s.pmid ?? ""].join("|")));
 }
 
 const strip = (html: string) =>

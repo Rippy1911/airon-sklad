@@ -29,8 +29,11 @@ const atBase = async (path: string) => {
 };
 const fails: string[] = [], warns: string[] = [], notes: string[] = [];
 
-const changed = (await git("diff", "--name-status", "--no-renames", `${base}...HEAD`)).trim().split("\n")
-  .filter(Boolean).map((l) => l.split("\t") as [string, string]);
+// quotePath=false: git would otherwise print "kb/sources/\305\272r\303\263d\305\202a.yaml", which no filter matches.
+const changed =
+  (await git("-c", "core.quotePath=false", "diff", "--name-status", "--no-renames", `${base}...HEAD`))
+    .trim().split("\n")
+    .filter(Boolean).map((l) => l.split("\t") as [string, string]);
 const FORBIDDEN =
   /\b(dangerous|toxic|harmful|poison\w*|niebezpieczn\w*|toksyczn\w*|szkodliw\w*|trując\w*|gefährlich\w*|giftig\w*|schädlich\w*)\b/iu;
 const CLINICAL = /\b(safe for|unsafe for|safe in pregnancy|bezpieczn\w* dla|bezpieczn\w* w ciąży)\b/iu;
@@ -94,9 +97,12 @@ for (const [status, path] of changed) {
   const now = parse(await Deno.readTextFile(`${dir}/${path}`)) as Record<string, unknown>;
   const was = status === "A" ? null : await atBase(path);
   if (path.startsWith("kb/sources")) {
-    const old = new Set(((was?.sources ?? []) as { id: string }[]).map((s) => s.id));
-    for (const s of (now.sources ?? []) as { id: string; url?: string; doi?: string; accessed?: string }[]) {
-      if (old.has(s.id)) continue;
+    type Cite = { id: string; url?: string; doi?: string; pmid?: string; accessed?: string };
+    const old = new Map(((was?.sources ?? []) as Cite[]).map((s) => [s.id, s]));
+    const cite = (s?: Cite) => s ? [s.doi ?? "", s.url ?? "", s.pmid ?? ""].join("|") : "";
+    for (const s of (now.sources ?? []) as Cite[]) {
+      // Unchanged existing sources were checked when they were added; new ones and changed citations are checked now.
+      if (old.has(s.id) && cite(old.get(s.id)) === cite(s)) continue;
       if (!s.url && !s.doi) fails.push(`${path} source ${s.id}: neither url nor doi`);
       if (!s.accessed) warns.push(`${path} source ${s.id}: no accessed date`);
       newSources.push({ id: s.id, url: s.url, doi: s.doi, file: path });
