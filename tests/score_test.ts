@@ -44,6 +44,27 @@ Deno.test("an unknown item under an inherited additive header withholds the scor
   assertEquals(s.withheld, { reason: "unknown_additive", detail: ["nowybarwnik"] });
 });
 
+Deno.test("dash-separated lists and dash class headers: each additive counted at its own place", () => {
+  const s = rate(
+    "mąka pszenna, węglany amonu - węglany sodu, substancja konserwująca - azotyn sodu, sól, " +
+      "regulator kwasowości - kwas cytrynowy",
+  );
+  assertEquals(s.coverage, { total: 6, confident: 6, ratio: 1 });
+  // The nitrite sits at place 4 once the raising agents count as two items; the header map must agree.
+  assertEquals(s.penalties.map((p) => [p.group, p.items.map((i) => [i.name, i.position])]), [[
+    "nitrosamines",
+    [["azotyn sodu", 4]],
+  ]]);
+  assertEquals(s.score, 90);
+});
+
+Deno.test("an additive header after a dash list still covers its own item", () => {
+  // The dash list becomes two items, moving the inherited "barwniki" header's unknown item to place 6; the
+  // header map must move with it, or the unknown colour stops withholding the score.
+  const s = rate("mąka pszenna, węglany amonu - węglany sodu, sól, barwniki: E150d, nowybarwnik");
+  assertEquals(s.withheld, { reason: "unknown_additive", detail: ["nowybarwnik"] });
+});
+
 Deno.test("low confident coverage withholds the score", () => {
   const s = rate("qwertyzz, mąka pszenna, cukier");
   assertEquals(s.score, null);
