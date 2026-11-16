@@ -1,6 +1,6 @@
 /** Every page, in Polish. Data reaches markup only through `html`, which escapes it. */
 import { COMMIT } from "./build-info.ts";
-import type { Lookup, Nutrients, Product, SearchHit } from "./data/product.ts";
+import { type Lookup, type Nutrients, type Product, type SearchHit, sized } from "./data/product.ts";
 import { allergens, describe, diets } from "./describe.ts";
 import { type AnalysisResult, flatItems, type ItemResult, kb } from "./engine.ts";
 import { ENGINE_REPO, fmtNum, type Html, html, icon, page, REPO } from "./html.ts";
@@ -385,11 +385,9 @@ ${
         } ${src}.</p>
 <ul class="results">${
           r.hits.map((h) =>
-            html`<li><a class="card result" href="${`/p/${h.ean}`}">${
-              h.imageUrl
-                ? html`<img src="${h.imageUrl}" alt="" loading="lazy" width="64" height="64">`
-                : html`<span class="thumb"></span>`
-            }<span><b>${h.name}</b><span class="mono muted">${
+            html`<li><a class="card result" href="${`/p/${h.ean}`}">${html`<img src="${
+              h.imageUrl ? sized(h.imageUrl, 200) : `/img/${h.ean}`
+            }" alt="" loading="lazy" decoding="async" width="64" height="64">`}<span><b>${h.name}</b><span class="mono muted">${
               h.brand ? `${h.brand} · ` : ""
             }EAN ${h.ean}</span></span></a></li>`
           )
@@ -411,7 +409,7 @@ function productHero(p: Product, right: Html): Html {
   <figure class="card pack">
     <div class="pack-img">${
     p.imageUrl
-      ? html`<img src="${p.imageUrl}" alt="${`Opakowanie: ${p.name}`}" width="360" height="360">`
+      ? html`<img src="${sized(p.imageUrl, 400)}" alt="${`Opakowanie: ${p.name}`}" width="360" height="360">`
       : icon.pack
   }</div>
     ${

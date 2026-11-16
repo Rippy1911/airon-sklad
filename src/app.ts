@@ -3,7 +3,7 @@ import { COMMIT } from "./build-info.ts";
 import { edgeCache, type ProductCache, ttlFor } from "./cache.ts";
 import type { Ctx, Env } from "./cf.ts";
 import { canonicalEan } from "./data/ean.ts";
-import { type DataEnv, getProduct, type Lookup, search } from "./data/product.ts";
+import { type DataEnv, getProduct, type Lookup, search, sized } from "./data/product.ts";
 import { allergens, describe, diets } from "./describe.ts";
 import { analyse, type AnalysisResult, kb } from "./engine.ts";
 import { ENGINE_REPO, type Html, REPO } from "./html.ts";
@@ -69,8 +69,14 @@ const jsonRes = (v: unknown, status = 200, cache = "no-store") =>
       "cache-control": cache,
     },
   });
-const redirect = (to: string, status = 302) =>
-  new Response(null, { status, headers: { ...BASE_HEADERS, location: to } });
+const redirect = (to: string, status = 302, cache?: string) =>
+  new Response(null, {
+    status,
+    headers: { ...BASE_HEADERS, location: to, ...(cache ? { "cache-control": cache } : {}) },
+  });
+
+/** Shown wherever a product has no photo (static asset). */
+export const PLACEHOLDER = "/pack.svg";
 
 /** Rate-limit key: the IPv4 address, or the /64 of an IPv6 one (one household or phone holds a whole /64). */
 export function ipKey(ip: string): string {
@@ -260,6 +266,24 @@ export function makeHandler(deps: Deps = {}) {
     );
   }
 
+  /**
+   * A product's photo for search thumbnails: ns-food's search answer carries no image, so each thumbnail looks the
+   * product up (the same cache and the same ns-food-then-OFF path as its page) and is redirected to OFF's 200 px
+   * photo. No photo, an invalid code, an exhausted allowance or a failed lookup all give the placeholder, so a
+   * thumbnail never shows a broken image.
+   */
+  async function image(env: Env, ctx: Ctx, raw: string, ip: string): Promise<Response> {
+    const none = (cache: string) => redirect(PLACEHOLDER, 302, cache);
+    const ean = canonicalEan(raw);
+    if (!ean) return none("public, max-age=86400");
+    if (env.IMG_LIMIT && !(await env.IMG_LIMIT.limit({ key: ip })).success) return none("no-store");
+    const l = await lookup(env, ctx, ean).catch(() => null);
+    if (l?.status === "found" && l.product.imageUrl) {
+      return redirect(sized(l.product.imageUrl, 200), 302, "public, max-age=86400");
+    }
+    return none(l?.status === "found" || l?.status === "not_found" ? "public, max-age=3600" : "no-store");
+  }
+
   async function productPage(env: Env, ctx: Ctx, raw: string): Promise<Response> {
     const ean = canonicalEan(raw);
     if (!ean) return htmlRes(P.notFoundPage("invalid", raw.slice(0, 40)), 404);
@@ -282,12 +306,6 @@ export function makeHandler(deps: Deps = {}) {
     if (api && req.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: { ...BASE_HEADERS, ...CORS } });
     }
-    if (env.PAGE_LIMIT && !(await env.PAGE_LIMIT.limit({ key: ip })).success) {
-      return api
-        ? jsonRes({ ok: false, error: "rate_limited" }, 429)
-        : htmlRes(P.tooManyPage(), 429, "no-store", { "retry-after": "10" });
-    }
-    const get = req.method === "GET" || req.method === "HEAD";
     const param = (re: RegExp) => {
       const m = path.match(re);
       if (!m) return null;
@@ -297,6 +315,17 @@ export function makeHandler(deps: Deps = {}) {
         return "";
       }
     };
+    // Thumbnails have their own, larger allowance: one search page asks for up to 20 of them at once.
+    const img = param(/^\/img\/([^/]+)$/);
+    if (img !== null && (req.method === "GET" || req.method === "HEAD")) {
+      return await image(env, ctx, img, ip);
+    }
+    if (env.PAGE_LIMIT && !(await env.PAGE_LIMIT.limit({ key: ip })).success) {
+      return api
+        ? jsonRes({ ok: false, error: "rate_limited" }, 429)
+        : htmlRes(P.tooManyPage(), 429, "no-store", { "retry-after": "10" });
+    }
+    const get = req.method === "GET" || req.method === "HEAD";
 
     if (req.method === "POST") {
       if (path === "/zdjecie") return await photoPost(req, env, ip);

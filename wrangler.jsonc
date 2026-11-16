@@ -22,7 +22,9 @@
     // Photo reads: 5 per minute per client address.
     { "name": "PHOTO_LIMIT", "namespace_id": "41811", "simple": { "limit": 5, "period": 60 } },
     // Pages and JSON: 60 per 10 s per client address, so a scraper can't spend the ns-food key.
-    { "name": "PAGE_LIMIT", "namespace_id": "41812", "simple": { "limit": 60, "period": 10 } }
+    { "name": "PAGE_LIMIT", "namespace_id": "41812", "simple": { "limit": 60, "period": 10 } },
+    // Search thumbnails (/img/{ean}): 120 per minute per client address; past it, the placeholder.
+    { "name": "IMG_LIMIT", "namespace_id": "41813", "simple": { "limit": 120, "period": 60 } }
   ],
   "observability": { "enabled": true }
 }

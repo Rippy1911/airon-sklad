@@ -130,3 +130,14 @@ Deno.test("search uses ns-food autocomplete, falls back to OFF when it has nothi
   const r2 = await search(env(empty.fetch), "biszkopty");
   assertEquals([r2.source, r2.hits[0].name, r2.hits[0].brand], ["off", "Z OFF", "Marka"]);
 });
+
+Deno.test("sized swaps only OFF's size suffix", async () => {
+  const { sized } = await import("../src/data/product.ts");
+  const base = "https://images.openfoodfacts.org/images/products/590/067/200/1082/front_pl.22";
+  assertEquals(sized(`${base}.400.jpg`, 200), `${base}.200.jpg`);
+  assertEquals(sized(`${base}.full.jpg`, 400), `${base}.400.jpg`);
+  assertEquals(
+    sized("https://images.openfoodfacts.org/x/other.png", 200),
+    "https://images.openfoodfacts.org/x/other.png",
+  );
+});

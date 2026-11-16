@@ -27,6 +27,7 @@ export interface Env {
   DB?: D1Like;
   PHOTO_LIMIT?: RateLimit;
   PAGE_LIMIT?: RateLimit;
+  IMG_LIMIT?: RateLimit;
   NS_FOOD_URL: string;
   NS_FOOD_KEY?: string;
   ANTHROPIC_API_KEY?: string;

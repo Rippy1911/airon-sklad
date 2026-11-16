@@ -90,6 +90,14 @@ export function safeImage(url: unknown): string | null {
   }
 }
 
+/**
+ * The same OFF photo at another size. OFF serves every selected image as 100, 200, 400 and full; a thumbnail at
+ * 200 px is a tenth of the full image's bytes. Anything that is not an OFF size URL is returned unchanged.
+ */
+export function sized(url: string, px: 100 | 200 | 400): string {
+  return url.replace(/\.(?:\d{3}|full)\.jpg$/, `.${px}.jpg`);
+}
+
 export function fromNsFood(d: Record<string, unknown>, ean: string, fetchedAt: string): Product {
   const extra = (d.extra && typeof d.extra === "object" ? d.extra : {}) as Record<string, unknown>;
   const pkg = num(d.package_grams ?? extra.package_grams);
