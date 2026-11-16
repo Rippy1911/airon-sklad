@@ -4,8 +4,8 @@
 //   deno run --allow-read --allow-run=git --allow-net --allow-write=<out-dir> scripts/kb/fetch-sources.ts \
 //     <ns-ingredients dir> <base-ref> <out-dir>
 //
-// For a DOI: the Europe PMC record (title, journal, year, PMID, abstract), which is also how EFSA Journal
-// abstracts open when the publisher refuses the fetch. For a URL: the page with tags stripped (EUR-Lex documents
+// For a DOI: the Europe PMC record (title, journal, year, PMID, abstract), plus the open-access full text when
+// the record has a PMCID; this is also how EFSA Journal opinions open when the publisher refuses the fetch. For a URL: the page with tags stripped (EUR-Lex documents
 // are long; the validator searches them). Writes <out-dir>/<source id>.txt and <out-dir>/index.md, which also
 // lists every PMID that Europe PMC does not give for that DOI.
 import { parse } from "@std/yaml";
@@ -86,6 +86,14 @@ for (const s of fresh) {
         strip(hit.abstractText ?? "(no abstract in Europe PMC)"),
       );
       status = `Europe PMC ${hit.pmid ? `PMID ${hit.pmid}` : "no PMID"}`;
+      if (hit.pmcid) {
+        const ft = await get(`https://www.ebi.ac.uk/europepmc/webservices/rest/${hit.pmcid}/fullTextXML`);
+        if (ft.ok && ft.body.length > 500) {
+          const text = strip(ft.body);
+          parts.push("", `full text (${hit.pmcid}, Europe PMC open access):`, text);
+          status += `, full text ${text.length} chars`;
+        } else status += ", abstract only";
+      } else status += ", abstract only";
       if (s.pmid && hit.pmid && String(s.pmid) !== String(hit.pmid)) {
         pmidIssues.push(`${s.id}: cites PMID ${s.pmid}, Europe PMC gives ${hit.pmid} for DOI ${s.doi}`);
       } else if (s.pmid && !hit.pmid) {
