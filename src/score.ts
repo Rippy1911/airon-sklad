@@ -10,6 +10,7 @@
  * whether the header is its own or inherited from an earlier item ("barwniki: E150d, nowy-barwnik").
  */
 import rules from "../rules/v0.1.json" with { type: "json" };
+import { nameOracle } from "../vendor/ns-ingredients/src/core/analyze.ts";
 import { parseLabel, walk } from "../vendor/ns-ingredients/src/core/parse.ts";
 import { type AnalysisResult, flatItems, type ItemResult, kb } from "./engine.ts";
 
@@ -75,7 +76,8 @@ const position = (path: string) => Number(path.split(".")[0]);
 function additiveHeaders(text: string): Map<string, string> {
   const out = new Map<string, string>();
   const index = kb();
-  for (const p of walk(parseLabel(text, { lang: "pl" }).items)) {
+  // The same name oracle as the analyser, so a dash or full-stop split gives the same item paths.
+  for (const p of walk(parseLabel(text, { lang: "pl", kb: nameOracle(index) }).items)) {
     const h = p.header ?? p.inheritedHeader;
     if (h && index.classOf(h)) out.set(p.path, h);
   }
