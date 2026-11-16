@@ -77,7 +77,9 @@ for (const { code, scans } of codes) {
   const body = await getJson(
     `https://world.openfoodfacts.org/api/v2/product/${code}?fields=code,product_name,product_name_pl,brands,ingredients_text_pl`,
   );
-  const p = (body?.product ?? {}) as Record<string, unknown>;
+  // A failed fetch (retries exhausted) is not "no Polish list": leave the code for the next run.
+  if (!body) continue;
+  const p = (body.product ?? {}) as Record<string, unknown>;
   const text = String(p.ingredients_text_pl ?? "").trim();
   if (text.length >= 3) {
     rows.set(code, {

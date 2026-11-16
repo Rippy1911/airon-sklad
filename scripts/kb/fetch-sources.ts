@@ -22,7 +22,7 @@ const git = async (...args: string[]) => {
 };
 type Source = { id: string; title?: string; year?: number; url?: string; doi?: string; pmid?: string };
 const files = (await git("diff", "--name-only", `${base}...HEAD`)).split("\n")
-  .filter((f) => /^kb\/sources(\.yaml|\/[^/]+\.yaml)$/.test(f));
+  .filter((f) => /^kb\/sources(\.ya?ml|\/[^/]+\.ya?ml)$/.test(f));
 const fresh: Source[] = [];
 for (const f of files) {
   const now = (parse(await Deno.readTextFile(`${dir}/${f}`)) as { sources?: Source[] }).sources ?? [];

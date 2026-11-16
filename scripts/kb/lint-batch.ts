@@ -82,7 +82,8 @@ for (const [status, path] of changed) {
     fails.push(`${path}: kb/generated/ is machine-imported and never edited by hand`);
     continue;
   }
-  if (!/^kb\/(ingredients|sources)\/[^/]+\.yaml$/.test(path) && path !== "kb/sources.yaml") {
+  // .yml too: the KB loader accepts both extensions, so neither may skip the batch checks.
+  if (!/^kb\/(ingredients|sources)\/[^/]+\.ya?ml$/.test(path) && !/^kb\/sources\.ya?ml$/.test(path)) {
     warns.push(`${path} (${status}): outside a KB batch; needs its own review`);
     continue;
   }
@@ -165,6 +166,11 @@ const v = await new Deno.Command("deno", {
 }).output();
 const vText = new TextDecoder().decode(v.stdout) + new TextDecoder().decode(v.stderr);
 for (const l of vText.split("\n")) if (l.startsWith("ERROR")) fails.push(`kb:validate ${l}`);
+// A validator that crashes (or exits nonzero for any reason) is a failure even when it printed no ERROR line.
+if (v.code !== 0) {
+  const tail = vText.trim().split("\n").slice(-3).join(" | ");
+  fails.push(`kb:validate exited ${v.code}${tail ? `: ${tail}` : ""}`);
+}
 const vLine = vText.split("\n").find((l) => /^kb-[0-9a-f]+:/.test(l)) ?? "(kb:validate printed no summary)";
 
 const verdict = fails.length ? "FAIL" : "PASS";

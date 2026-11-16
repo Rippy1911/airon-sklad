@@ -10,6 +10,8 @@
 // - share: each withheld label spreads one point over the items it still needs (every open blocker, plus the
 //   misses needed to reach 80% coverage). An item that sits in many nearly-scorable labels ranks first.
 // - gain / greedy_rank: how many more labels score once this item and every greedy pick before it match.
+//   The greedy order stops when no single item unlocks a label, so a label held back by two items that only
+//   help together is not counted: the total is a lower bound.
 // - kind: "parser" when the item is the parser's to fix, not the KB's: two items joined by a dash or a full
 //   stop, an additive class written without its colon ("stabilizator chlorek wapnia"), or a fragment of three
 //   letters or fewer ("B6", "D"). A KB name must never be added for those.
@@ -208,8 +210,8 @@ const fmt = (m: Record<string, number>, n = 4) =>
 const md = [
   `# KB gap job (${index.version}): top ${kbTop.length} items`,
   "",
-  `Withheld labels in the corpora: ${withheld.length}. Matching every KB-fixable item in greedy order would let ` +
-  `${base} more score. "share" = how much of the remaining work to unlock labels this item is; "labels" = ` +
+  `Withheld labels in the corpora: ${withheld.length}. Matching the KB-fixable items in greedy order would let ` +
+  `at least ${base} more score (a lower bound: labels needing two fixes at once are not counted). "share" = how much of the remaining work to unlock labels this item is; "labels" = ` +
   `withheld labels it appears in; "blocks" = labels where it is an unidentified additive.`,
   "",
   "| # | item (normalised) | share | labels | blocks | current match | label spellings |",
