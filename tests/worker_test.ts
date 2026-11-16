@@ -316,3 +316,47 @@ Deno.test("ingredient chips link to knowledge-base pages that render", async () 
   }
   assertEquals((await h(get("/skladnik/nie-ma-takiego"), ENV, ctx())).status, 404);
 });
+
+Deno.test("search thumbnails: /img redirects to OFF's 200 px photo, else to the placeholder", async () => {
+  const deny = { limit: () => Promise.resolve({ success: false }) };
+  const f = fakeFetch({ [NS]: () => json(nsProduct()) });
+  // Pages are over their limit here: thumbnails have their own allowance.
+  const r = await makeHandler({ fetch: f.fetch, cache: null })(get(`/img/${EAN}`), {
+    ...ENV,
+    PAGE_LIMIT: deny,
+  }, ctx());
+  assertEquals(r.status, 302);
+  assertEquals(
+    r.headers.get("location"),
+    "https://images.openfoodfacts.org/images/products/400/638/133/3931/front_pl.3.200.jpg",
+  );
+  assertEquals(r.headers.get("x-robots-tag"), "noindex, nofollow");
+
+  const bare = fakeFetch({ [NS]: () => json(nsProduct({ image_url: null })) });
+  const r2 = await makeHandler({ fetch: bare.fetch, cache: null })(get(`/img/${EAN}`), ENV, ctx());
+  assertEquals(r2.headers.get("location"), "/pack.svg");
+
+  const none = fakeFetch({});
+  const h = makeHandler({ fetch: none.fetch, cache: null });
+  assertEquals((await h(get("/img/123"), ENV, ctx())).headers.get("location"), "/pack.svg");
+  const limited = await h(get(`/img/${EAN}`), { ...ENV, IMG_LIMIT: deny }, ctx());
+  assertEquals([limited.headers.get("location"), limited.headers.get("cache-control")], [
+    "/pack.svg",
+    "no-store",
+  ]);
+  assertEquals(none.calls.length, 0, "no upstream call for an invalid code or past the allowance");
+});
+
+Deno.test("every search hit gets a thumbnail; product photos use the 400 px size", async () => {
+  const f = fakeFetch({
+    [NS]: (u) =>
+      u.pathname === "/v1/autocomplete"
+        ? json({ ok: true, data: [{ name: "Koktajl", brand: "Piątnica", barcode: EAN }] })
+        : json(nsProduct()),
+  });
+  const h = makeHandler({ fetch: f.fetch, cache: null });
+  const search = await (await h(get("/szukaj?q=koktajl"), ENV, ctx())).text();
+  assertStringIncludes(search, `<img src="/img/${EAN}" alt="" loading="lazy"`);
+  const page = await (await h(get(`/p/${EAN}`), ENV, ctx())).text();
+  assertStringIncludes(page, "front_pl.3.400.jpg");
+});
