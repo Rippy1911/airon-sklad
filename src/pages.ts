@@ -3,7 +3,7 @@ import { COMMIT } from "./build-info.ts";
 import { type Lookup, type Nutrients, type Product, type SearchHit, sized } from "./data/product.ts";
 import { allergens, describe, diets } from "./describe.ts";
 import { type AnalysisResult, flatItems, type ItemResult, kb } from "./engine.ts";
-import { ENGINE_REPO, fmtNum, type Html, html, icon, page, REPO } from "./html.ts";
+import { ENGINE_REPO, fmtNum, type Html, html, icon, page, REPO, trusted } from "./html.ts";
 import { MAX_PHOTOS, PHOTO_ERROR_PL, type PhotoError } from "./photo.ts";
 import { isConfident, RULES, type Score } from "./score.ts";
 
@@ -240,11 +240,73 @@ function possibleList(s: Score, all = false): Html | string {
   }</div>`;
 }
 
+/** How an ingredient is made or what it comes from, in the order the card lists them: plain plant origin last. */
+const ORIGIN_ORDER = [
+  "origin.vegetable_oil_derived",
+  "ethics.palm_oil",
+  "origin.microbial_fermentation",
+  "origin.chemical_synthesis",
+  "origin.petrochemical_synthetic",
+  "origin.mineral",
+  "origin.animal",
+  "origin.fish",
+  "origin.insect",
+  "origin.dairy",
+  "origin.egg",
+  "origin.bee_product",
+  "origin.gmo_derived",
+  "origin.plant",
+];
+const isOrigin = (code: string) => ORIGIN_ORDER.includes(code);
+const seen = (c: string) => c === "yes" || c === "maybe";
+// A constant, not an html`` template: deno fmt reflows those, and the reflowed whitespace renders as a space
+// before the next comma ("cukier (możliwe) , olej").
+const MAYBE = trusted(' <span class="muted">(możliwe)</span>');
+
+/** Every origin flag, with the items behind it and the knowledge base's note on how each is made. */
+export function originsCard(a: AnalysisResult): Html | string {
+  const flags = a.flags.filter((f) => isOrigin(f.code) && seen(f.certainty))
+    .sort((x, y) => ORIGIN_ORDER.indexOf(x.code) - ORIGIN_ORDER.indexOf(y.code));
+  if (!flags.length) return "";
+  const byPath = new Map(flatItems(a.items).map((it) => [it.path, it.name]));
+  return html`
+    <section class="card">
+      <div
+        class="sec-head"><h2 class="h2">Skąd pochodzą składniki</h2><span class="muted small">Z czego i jak się je wytwarza, według bazy składników. Nie zmienia wyniku.</span></div>
+      <div class="origins">${flags.map((f) => {
+        const items = new Map<string, string>(); // item name -> surest certainty
+        const notes = new Map<string, string[]>(); // note -> the items it explains
+        for (const t of f.triggers.filter((t) => seen(t.certainty))) {
+          const name = byPath.get(t.path);
+          if (!name) continue;
+          if (items.get(name) !== "yes") items.set(name, t.certainty);
+          if (t.note && !notes.get(t.note)?.includes(name)) {
+            notes.set(t.note, [...notes.get(t.note) ?? [], name]);
+          }
+        }
+        return html`<div class="fact">
+  <div class="fact-head">${grade(f.grade, f.kind)}<b>${f.label}</b></div>
+  <p class="small">${
+          [...items].map(([name, c], i) => html`${i ? ", " : ""}${name}${c === "yes" ? "" : MAYBE}`)
+        }</p>
+  ${
+          notes.size
+            ? html`<details class="raw"><summary>Jak to wiemy</summary>${
+              [...notes].map(([note, names]) => html`<p><b>${names.join(", ")}:</b> ${note}</p>`)
+            }</details>`
+            : ""
+        }
+</div>`;
+      })}</div>
+    </section>
+  `;
+}
+
 function worthKnowing(a: AnalysisResult): Html | string {
   const counted = new Set(RULES.groups.flatMap((g) => g.codes));
   const flags = a.flags
     .filter((f) =>
-      !f.code.startsWith("allergen.") && !counted.has(f.code) &&
+      !f.code.startsWith("allergen.") && !counted.has(f.code) && !isOrigin(f.code) &&
       (f.certainty === "yes" || f.certainty === "maybe")
     )
     .sort((x, y) => (x.certainty === "yes" ? 0 : 1) - (y.certainty === "yes" ? 0 : 1))
@@ -332,7 +394,8 @@ function analysisSections(
       <ul class="plain">${describe(a, s).map((line) => html`<li>${line}</li>`)}</ul>
     </div>
   </div>
-</section>`;
+</section>
+${originsCard(a)}`;
 }
 
 // ---------- pages ----------
