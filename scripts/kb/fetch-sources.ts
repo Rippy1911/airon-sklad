@@ -15,11 +15,21 @@ if (!dir || !base || !out) {
   throw new Error("usage: fetch-sources.ts <ns-ingredients dir> <base-ref> <out-dir>");
 }
 const UA = "airon-sklad-kb-coverage/0.1 (open-source ingredient research)";
+/** Runs git. A failure is fatal: an empty answer would read as "no new sources" and hand the validator nothing. */
 const git = async (...args: string[]) => {
   const r = await new Deno.Command("git", { args: ["-C", dir, ...args], stdout: "piped", stderr: "piped" })
     .output();
-  return r.code === 0 ? new TextDecoder().decode(r.stdout) : "";
+  if (r.code !== 0) {
+    throw new Error(`git ${args.join(" ")} exited ${r.code}: ${new TextDecoder().decode(r.stderr).trim()}`);
+  }
+  return new TextDecoder().decode(r.stdout);
 };
+/** A file as it was at the base, or "" when the batch added it (the one expected miss). */
+const atBase = async (f: string) => {
+  const has = await new Deno.Command("git", { args: ["-C", dir, "cat-file", "-e", `${base}:${f}`] }).output();
+  return has.code === 0 ? await git("show", `${base}:${f}`) : "";
+};
+await git("rev-parse", "--verify", "--quiet", `${base}^{commit}`);
 type Source = { id: string; title?: string; year?: number; url?: string; doi?: string; pmid?: string };
 // -z: NUL-separated paths, never quoted, whatever a file name holds.
 const files = (await git("diff", "-z", "--name-only", `${base}...HEAD`)).split("\0")
@@ -28,7 +38,7 @@ const fresh: Source[] = [];
 for (const f of files) {
   const now = (parse(await Deno.readTextFile(`${dir}/${f}`)) as { sources?: Source[] }).sources ?? [];
   const before = new Map(
-    ((parse((await git("show", `${base}:${f}`)) || "{}") as { sources?: Source[] } | null)?.sources ?? [])
+    ((parse((await atBase(f)) || "{}") as { sources?: Source[] } | null)?.sources ?? [])
       .map((s) => [s.id, [s.doi ?? "", s.url ?? "", s.pmid ?? ""].join("|")]),
   );
   // New sources, and existing ones whose citation changed.
