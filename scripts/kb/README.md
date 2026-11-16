@@ -12,6 +12,7 @@ does to real scores. The KB rules themselves are in `vendor/ns-ingredients/docs/
 | `gaps.ts <out-dir> <dump> <corpus> […]`                          | Ranks the items that hold labels back from a score: `gaps.json` (all) and `job.md` (the top items with label context for the drafter, then the parser-shaped items, which are not the KB's to fix). |
 | `lint-batch.ts <ns-ingredients dir> <base-ref> [--net]`          | The contributing rules a schema cannot check, on a batch branch's diff, plus `kb:validate`. With `--net`, every new DOI must resolve.                                                               |
 | `check.ts --before <dir> --after <dir> --out <dir> <corpus> […]` | The corpus gate. Scores the corpora against two ns-ingredients checkouts and compares them.                                                                                                         |
+| `fetch-sources.ts <ns-ingredients dir> <base-ref> <out-dir>` | The text of every source a batch adds (Europe PMC record by DOI; EU acts from the Publications Office's Cellar, since EUR-Lex pages need JavaScript), so a validator without web access checks claims against what the source says. |
 
 `dump.ts` and `gaps.ts` read `vendor/ns-ingredients`. `check.ts` points that path at any checkout through an
 import map, so this repo's scoring code always runs unmodified.
@@ -29,8 +30,8 @@ import map, so this repo's scoring code always runs unmodified.
 4. **Mechanical gates.** `lint-batch.ts --net` and `check.ts` must both PASS. `check.ts` fails when a corpus
    scores fewer labels, when a label that scored is withheld, or when a confidently matched item loses its
    match or changes ingredient. It also fails when no corpus scores more.
-5. **Gate 1: validation** by a second model that did not draft. It opens every cited source and confirms that
-   the source says what is claimed. It reads every added name and every newly confident match against the
+5. **Gate 1: validation** by a second model that did not draft. It reads every new source's text (`fetch-sources.ts`)
+   and confirms that the source says what is claimed. It reads every added name and every newly confident match against the
    label text, looking for wrong merges.
 6. **Gate 2: review** of the pull request by a third model.
 7. **Merge.** Squash-merge into ns-ingredients `main` once both gates are READY and CI is green. Then bump
