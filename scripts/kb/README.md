@@ -13,6 +13,7 @@ does to real scores. The KB rules themselves are in `vendor/ns-ingredients/docs/
 | `lint-batch.ts <ns-ingredients dir> <base-ref> [--net]`          | The contributing rules a schema cannot check, on a batch branch's diff, plus `kb:validate`. With `--net`, every new DOI must resolve.                                                               |
 | `check.ts --before <dir> --after <dir> --out <dir> <corpus> […]` | The corpus gate. Scores the corpora against two ns-ingredients checkouts and compares them.                                                                                                         |
 | `fetch-sources.ts <ns-ingredients dir> <base-ref> <out-dir>` | The text of every source a batch adds (Europe PMC record by DOI; EU acts from the Publications Office's Cellar, since EUR-Lex pages need JavaScript), so a validator without web access checks claims against what the source says. |
+| `probe.ts "<label text>" […]` | How this repo reads label strings: each item's match, coverage, score. Run it under `check.ts`'s `after.deno.json` to test a batch's names ("olej z pestek dyni", "sok pomarańczowy") before committing them. |
 
 `dump.ts` and `gaps.ts` read `vendor/ns-ingredients`. `check.ts` points that path at any checkout through an
 import map, so this repo's scoring code always runs unmodified.
